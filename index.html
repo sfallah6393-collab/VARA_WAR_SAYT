@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>سیستم احراز هویت</title>
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Vazirmatn',sans-serif;background:linear-gradient(135deg,#f5f7fa 0%,#c3cfe2 100%);min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px}
+        .container{background:rgba(255,255,255,0.95);backdrop-filter:blur(10px);border-radius:40px;padding:40px 35px;max-width:650px;width:100%;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);position:relative;min-height:500px}
+        .menu-btn{position:absolute;top:18px;left:20px;background:none;border:none;cursor:pointer;padding:8px 6px;border-radius:30px;transition:0.2s;display:flex;flex-direction:column;gap:5px;z-index:10}
+        .menu-btn:hover{background:rgba(0,0,0,0.05)}
+        .menu-btn span{display:block;width:26px;height:3px;background:#1e293b;border-radius:10px;transition:0.3s}
+        .menu-btn span:nth-child(2){width:18px}
+        .menu-btn span:nth-child(3){width:10px}
+        h1{font-size:24px;font-weight:700;color:#0f172a;text-align:center;margin-top:10px;margin-bottom:6px}
+        .subtitle{text-align:center;color:#475569;font-size:14px;margin-bottom:25px;border-bottom:2px dashed #e2e8f0;padding-bottom:18px}
+        .page{display:none}.page.active{display:block}
+        .form-group{margin-bottom:18px}
+        label{display:block;font-weight:500;color:#1e293b;font-size:14px;margin-bottom:5px}
+        input,select{width:100%;padding:13px 18px;border:2px solid #e2e8f0;border-radius:30px;font-size:15px;background:white;transition:0.2s;font-family:'Vazirmatn',sans-serif;outline:none}
+        input:focus,select:focus{border-color:#6366f1;box-shadow:0 0 0 4px rgba(99,102,241,0.15)}
+        .btn-primary{width:100%;padding:15px;background:#0f172a;color:white;border:none;border-radius:40px;font-size:17px;font-weight:600;cursor:pointer;transition:0.2s;font-family:'Vazirmatn',sans-serif;margin-top:8px}
+        .btn-primary:hover{background:#1e293b;transform:scale(1.02);box-shadow:0 10px 25px -5px rgba(15,23,42,0.3)}
+        .btn-secondary{padding:13px 20px;background:#6366f1;color:white;border:none;border-radius:40px;font-size:15px;font-weight:500;cursor:pointer;transition:0.2s;font-family:'Vazirmatn',sans-serif}
+        .btn-secondary:hover{background:#4f46e5;transform:scale(1.02)}
+        .btn-success{background:#10b981}.btn-success:hover{background:#059669}
+        .btn-danger{background:#dc2626}.btn-danger:hover{background:#b91c1c}
+        .btn-sm{padding:8px 16px;font-size:13px;width:auto;margin:3px;border:none;border-radius:30px;cursor:pointer;font-weight:500;font-family:'Vazirmatn',sans-serif;transition:0.2s}
+        .btn-sm:hover{transform:scale(1.05)}
+        .btn-add{background:#10b981;color:white}.btn-add:hover{background:#059669}
+        .btn-remove{background:#dc2626;color:white}.btn-remove:hover{background:#b91c1c}
+        .btn-verify{background:#3b82f6;color:white}.btn-verify:hover{background:#2563eb}
+        .btn-accept{background:#10b981;color:white}.btn-accept:hover{background:#059669}
+        .btn-reject{background:#dc2626;color:white}.btn-reject:hover{background:#b91c1c}
+        .btn-gold{background:#f59e0b;color:white}.btn-gold:hover{background:#d97706}
+        .error-msg{color:#dc2626;font-size:13px;text-align:center;margin-top:12px;display:none}
+        .error-msg.show{display:block}
+        .code-row{display:flex;gap:10px;align-items:center}
+        .code-row input{flex:1}
+        .code-row .btn-secondary{width:auto;white-space:nowrap}
+        .back-link{display:inline-block;margin-top:15px;color:#6366f1;cursor:pointer;font-size:14px;text-decoration:underline}
+        .back-link:hover{color:#0f172a}
+        .timer-text{font-size:12px;color:#94a3b8;text-align:center;margin-top:8px}
+        .code-box{background:#f1f5f9;border-radius:16px;padding:15px;margin:15px 0;text-align:center;border:2px dashed #6366f1;direction:ltr}
+        .code-box .code-display{font-size:32px;font-weight:700;color:#0f172a;letter-spacing:8px;font-family:monospace;background:white;padding:10px;border-radius:12px;margin-top:8px}
+        .welcome-container{width:100%;overflow:hidden;position:relative;padding:20px 0}
+        .welcome-text{font-size:42px;font-weight:900;background:linear-gradient(45deg,#6366f1,#8b5cf6,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;display:inline-block;white-space:nowrap;animation:marquee 1.5s ease-in-out forwards;opacity:0;transform:scale(0.5);letter-spacing:2px}
+        @keyframes marquee{0%{opacity:0;transform:scale(0.3) rotate(-10deg);letter-spacing:20px}50%{opacity:1;transform:scale(1.2) rotate(2deg);letter-spacing:5px}70%{transform:scale(0.95) rotate(-1deg)}100%{opacity:1;transform:scale(1) rotate(0deg);letter-spacing:2px}}
+        .welcome-sub{font-size:16px;color:#64748b;margin-top:10px;animation:fadeInUp 1s ease 0.6s both}
+        @keyframes fadeInUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+        .success-icon{font-size:56px;animation:bounceIn 0.8s ease both}
+        @keyframes bounceIn{0%{opacity:0;transform:scale(0)}50%{transform:scale(1.3)}70%{transform:scale(0.9)}100%{opacity:1;transform:scale(1)}}
+        .confetti-container{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:hidden}
+        .confetti{position:absolute;width:10px;height:10px;border-radius:2px;animation:confettiFall 3s linear infinite}
+        @keyframes confettiFall{0%{opacity:1;transform:translateY(-20px) rotate(0deg)}100%{opacity:0;transform:translateY(400px) rotate(720deg)}}
+        .top-nav{background:linear-gradient(135deg,#10b981,#059669);border-radius:16px;padding:10px 15px;margin-bottom:25px;display:flex;justify-content:space-around;align-items:center;flex-wrap:wrap;gap:8px;box-shadow:0 4px 15px rgba(16,185,129,0.3)}
+        .top-nav a{color:white;text-decoration:none;font-size:14px;font-weight:500;padding:6px 14px;border-radius:30px;transition:0.3s;cursor:pointer;background:rgba(255,255,255,0.1)}
+        .top-nav a:hover{background:rgba(255,255,255,0.25);transform:scale(1.05)}
+        .top-nav a.active{background:rgba(255,255,255,0.3);box-shadow:0 0 15px rgba(255,255,255,0.2)}
+        .admin-nav{background:linear-gradient(135deg,#10b981,#059669);border-radius:16px;padding:10px 15px;margin-bottom:25px;display:flex;justify-content:space-around;align-items:center;flex-wrap:wrap;gap:8px;box-shadow:0 4px 15px rgba(16,185,129,0.3)}
+        .admin-nav a{color:white;text-decoration:none;font-size:14px;font-weight:500;padding:6px 14px;border-radius:30px;transition:0.3s;cursor:pointer;background:rgba(255,255,255,0.1)}
+        .admin-nav a:hover{background:rgba(255,255,255,0.25);transform:scale(1.05)}
+        .admin-nav a.active{background:rgba(255,255,255,0.3);box-shadow:0 0 15px rgba(255,255,255,0.2)}
+        .panel-card{background:#f8fafc;border-radius:20px;padding:20px;margin-bottom:15px;border:1px solid #e2e8f0}
+        .panel-card .label{color:#64748b;font-size:13px;font-weight:500}
+        .panel-card .value{color:#0f172a;font-size:18px;font-weight:700;margin-top:4px}
+        .panel-card .value.green{color:#10b981}
+        .panel-section{display:none}.panel-section.active{display:block}
+        .verified-badge{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;font-size:12px;margin-right:4px;flex-shrink:0}
+        .verified-badge.blue{background:#1da1f2;color:white;box-shadow:0 2px 8px rgba(29,161,242,0.4)}
+        .verified-badge.gold{background:linear-gradient(135deg,#fbbf24,#f59e0b);color:white;box-shadow:0 2px 8px rgba(245,158,11,0.4)}
+        .verified-badge svg{width:14px;height:14px;fill:currentColor}
+        .name-with-badge{display:flex;align-items:center;gap:4px}
+        .user-item,.channel-item,.request-item{background:white;border-radius:16px;padding:15px;margin-bottom:12px;border:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+        .user-item .info,.channel-item .info,.request-item .info{flex:1}
+        .user-item .name{font-weight:600;color:#0f172a;font-size:16px}
+        .user-item .detail{font-size:13px;color:#64748b}
+        .actions{display:flex;gap:6px;flex-wrap:wrap}
+        .balance-control{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}
+        .balance-control input{width:120px;padding:8px 14px;border-radius:30px;border:2px solid #e2e8f0;font-family:'Vazirmatn',sans-serif;outline:none;font-size:14px}
+        .balance-control input:focus{border-color:#6366f1}
+        .empty-state{text-align:center;padding:30px;color:#94a3b8;font-size:14px}
+        .online-status{text-align:center;font-size:12px;color:#10b981;margin-top:10px;padding:8px;background:#f1f5f9;border-radius:30px}
+        .online-status.offline{color:#dc2626}
+        @media (max-width:500px){.container{padding:30px 18px}h1{font-size:22px}.code-row{flex-direction:column}.code-row .btn-secondary{width:100%}.welcome-text{font-size:28px}.top-nav a,.admin-nav a{font-size:12px;padding:5px 10px}.user-item,.channel-item,.request-item{flex-direction:column;align-items:stretch}.actions{justify-content:center}}
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <button class="menu-btn" id="menuBtn" aria-label="منو">
+            <span></span><span></span><span></span>
+        </button>
+
+        <div class="page active" id="verifyPage">
+            <h1>🔐 احراز هویت</h1>
+            <div class="subtitle">برای ثبت‌نام اطلاعات خود را وارد کنید</div>
+            <form id="verifyForm">
+                <div class="form-group">
+                    <label for="fullname">نام و نام خانوادگی</label>
+                    <input type="text" id="fullname" placeholder="نام خود را وارد کنید" required />
+                </div>
+                <div class="form-group">
+                    <label for="phone">شماره موبایل</label>
+                    <input type="tel" id="phone" placeholder="۰۹۱۲۳۴۵۶۷۸۹" required />
+                </div>
+                <div class="form-group">
+                    <label for="email">آدرس ایمیل</label>
+                    <input type="email" id="email" placeholder="example@email.com" required />
+                </div>
+                <div class="form-group">
+                    <label for="soroush">آیدی سروش</label>
+                    <input type="text" id="soroush" placeholder="آیدی سروش خود را وارد کنید" />
+                </div>
+                <div class="form-group">
+                    <label>کد تأیید</label>
+                    <div class="code-row">
+                        <input type="text" id="verifyCode" placeholder="کد ۶ رقمی" maxlength="6" required />
+                        <button type="button" class="btn-secondary" id="sendCodeBtn">ارسال کد</button>
+                    </div>
+                    <div class="timer-text" id="timerText"></div>
+                </div>
+                <div class="code-box" id="codeBox" style="display:none;">
+                    <span style="font-weight:500;color:#475569;">📱 کد تأیید:</span>
+                    <div class="code-display" id="simulatedCode">------</div>
+                </div>
+                <button type="submit" class="btn-primary" id="submitBtn">تأیید هویت</button>
+            </form>
+            <div class="error-msg" id="errorMsg">❌ کد تأیید اشتباه است!</div>
+            <div class="online-status" id="status">⏳ اتصال به سرور...</div>
+        </div>
+
+        <div class="page" id="successPage">
+            <div class="confetti-container" id="confettiContainer"></div>
+            <div class="success-icon">🎉</div>
+            <div class="welcome-container">
+                <div class="welcome-text">✨ خوش آمدید ✨</div>
+            </div>
+            <div class="welcome-sub" id="userNameDisplay">به سیستم خوش آمدید</div>
+        </div>
+
+        <div class="page" id="adminPasswordPage">
+            <h1>🔐 ورود به پنل مدیریت</h1>
+            <div class="subtitle">رمز عبور مدیر را وارد کنید</div>
+            <div class="form-group">
+                <label for="adminPasswordInput">رمز عبور</label>
+                <input type="password" id="adminPasswordInput" placeholder="رمز عبور را وارد کنید..." />
+            </div>
+            <button class="btn-primary" id="adminLoginBtn">ورود</button>
+            <div class="error-msg" id="adminError">❌ رمز عبور اشتباه است!</div>
+            <div style="text-align:center;margin-top:15px;">
+                <span class="back-link" id="backFromAdmin">← بازگشت</span>
+            </div>
+        </div>
+
+        <div class="page" id="panelPage">
+            <div class="top-nav">
+                <a class="active" data-section="home">صفحه اصلی</a>
+                <a data-section="channel">چنل شما</a>
+                <a data-section="account">حساب شما</a>
+            </div>
+            <div class="panel-section active" id="section-home">
+                <div class="panel-card">
+                    <div class="label">💰 موجودی</div>
+                    <div class="value green" id="userBalance">۰ ریال</div>
+                </div>
+                <div class="panel-card">
+                    <div class="label">👤 نام</div>
+                    <div class="value" id="userFullname">-</div>
+                </div>
+                <div class="panel-card">
+                    <div class="label">📺 چنل</div>
+                    <div class="value" id="userChannel">-</div>
+                </div>
+                <button class="btn-primary" id="goToChannelBtn">📺 مدیریت چنل</button>
+            </div>
+            <div class="panel-section" id="section-channel">
+                <div class="panel-card">
+                    <h3 style="margin-bottom:15px;color:#0f172a;">📺 احراز هویت چنل</h3>
+                    <div class="form-group">
+                        <label>نام چنل</label>
+                        <input type="text" id="channelName" placeholder="نام چنل را وارد کنید" />
+                    </div>
+                    <div class="form-group">
+                        <label>لینک</label>
+                        <input type="text" id="channelLink" placeholder="https://t.me/your_channel" />
+                    </div>
+                    <div class="form-group">
+                        <label>پلتفورم</label>
+                        <select id="channelPlatform">
+                            <option value="سروش">سروش</option>
+                            <option value="تلگرام">تلگرام</option>
+                            <option value="بله">بله</option>
+                            <option value="روبیکا">روبیکا</option>
+                        </select>
+                    </div>
+                    <button class="btn-primary btn-success" id="channelRequestBtn">📨 ارسال درخواست</button>
+                </div>
+            </div>
+            <div class="panel-section" id="section-account">
+                <div class="panel-card">
+                    <div class="label">👤 نام</div>
+                    <div class="value" id="accUsername">-</div>
+                </div>
+                <div class="panel-card">
+                    <div class="label">📱 موبایل</div>
+                    <div class="value" id="accPhone">-</div>
+                </div>
+                <div class="panel-card">
+                    <div class="label">✉️ ایمیل</div>
+                    <div class="value" id="accEmail">-</div>
+                </div>
+                <div class="panel-card">
+                    <div class="label">💬 سروش</div>
+                    <div class="value" id="accSoroush">-</div>
+                </div>
+                <button class="btn-primary btn-danger" id="logoutBtn">🚪 خروج</button>
+            </div>
+        </div>
+
+        <div class="page" id="adminPanel">
+            <div class="admin-nav">
+                <a class="active" data-admin="users">👥 کاربران</a>
+                <a data-admin="channels">📺 چنل‌ها</a>
+                <a data-admin="requests">📨 درخواست‌ها</a>
+            </div>
+            <div class="panel-section active" id="admin-users">
+                <h3 style="margin-bottom:15px;color:#0f172a;">👥 مدیریت کاربران</h3>
+                <div id="usersList"></div>
+            </div>
+            <div class="panel-section" id="admin-channels">
+                <h3 style="margin-bottom:15px;color:#0f172a;">📺 مدیریت چنل‌ها</h3>
+                <div id="channelsList"></div>
+            </div>
+            <div class="panel-section" id="admin-requests">
+                <h3 style="margin-bottom:15px;color:#0f172a;">📨 درخواست‌ها</h3>
+                <div id="requestsList"></div>
+            </div>
+            <button class="btn-primary btn-danger" id="adminLogoutBtn" style="margin-top:20px;">🚪 خروج</button>
+        </div>
+    </div>
+
+    <script>
+        // ===== تنظیمات Supabase (با کلیدهای جدید) =====
+        const SUPABASE_URL = 'https://dilmlvigedlzkfyqwqpj.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_PQ7jIZ7YKLsBLFgpE6QkZQ_50nI7bPL';
+
+        const supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let currentUser = null;
+        let generatedCode = '';
+        let timerInterval = null;
+
+        const menuBtn = document.getElementById('menuBtn');
+        const verifyPage = document.getElementById('verifyPage');
+        const successPage = document.getElementById('successPage');
+        const adminPasswordPage = document.getElementById('adminPasswordPage');
+        const panelPage = document.getElementById('panelPage');
+        const adminPanel = document.getElementById('adminPanel');
+
+        const adminPasswordInput = document.getElementById('adminPasswordInput');
+        const adminLoginBtn = document.getElementById('adminLoginBtn');
+        const adminError = document.getElementById('adminError');
+        const backFromAdmin = document.getElementById('backFromAdmin');
+
+        const sendCodeBtn = document.getElementById('sendCodeBtn');
+        const verifyCodeInput = document.getElementById('verifyCode');
+        const phoneInput = document.getElementById('phone');
+        const fullnameInput = document.getElementById('fullname');
+        const emailInput = document.getElementById('email');
+        const soroushInput = document.getElementById('soroush');
+        const submitBtn = document.getElementById('submitBtn');
+        const timerText = document.getElementById('timerText');
+        const errorMsg = document.getElementById('errorMsg');
+        const codeBox = document.getElementById('codeBox');
+        const simulatedCode = document.getElementById('simulatedCode');
+        const userNameDisplay = document.getElementById('userNameDisplay');
+        const statusElement = document.getElementById('status');
+
+        const ADMIN_PASSWORD = 'VARA KALAQ123';
+
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+        }
+
+        function renderBadge(type) {
+            if (type === 'blue') {
+                return `<span class="verified-badge blue"><svg viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg></span>`;
+            } else if (type === 'gold') {
+                return `<span class="verified-badge gold"><svg viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg></span>`;
+            }
+            return '';
+        }
+
+        function createConfetti() {
+            const container = document.getElementById('confettiContainer');
+            container.innerHTML = '';
+            const colors = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6'];
+            for (let i = 0; i < 50; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + '%';
+                confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.width = (Math.random() * 8 + 4) + 'px';
+                confetti.style.height = (Math.random() * 8 + 4) + 'px';
+                confetti.style.animationDuration = (Math.random() * 2 + 2) + 's';
+                confetti.style.animationDelay = (Math.random() * 2) + 's';
+                confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+                container.appendChild(confetti);
+            }
+        }
+
+        document.querySelectorAll('.top-nav a').forEach(link => {
+            link.addEventListener('click', function() {
+                document.querySelectorAll('.top-nav a').forEach(l => l.classList.remove('active'));
+                this.classList.add('active');
+                const section = this.dataset.section;
+                document.querySelectorAll('#panelPage .panel-section').forEach(s => s.classList.remove('active'));
+                document.getElementById('section-' + section).classList.add('active');
+            });
+        });
+
+        document.querySelectorAll('.admin-nav a').forEach(link => {
+            link.addEventListener('click', function() {
+                document.querySelectorAll('.admin-nav a').forEach(l => l.classList.remove('active'));
+                this.classList.add('active');
+                const section = this.dataset.admin;
+                document.querySelectorAll('#adminPanel .panel-section').forEach(s => s.classList.remove('active'));
+                document.getElementById('admin-' + section).classList.add('active');
+                renderAdminData(section);
+            });
+        });
+
+        async function getUsers() {
+            const { data, error } = await supabase.from('users').select('*').order('id');
+            if (error) { console.error(error); return []; }
+            return data || [];
+        }
+
+        async function getChannels() {
+            const { data, error } = await supabase.from('channels').select('*').order('id');
+            if (error) { console.error(error); return []; }
+            return data || [];
+        }
+
+        async function getRequests() {
+            const { data, error } = await supabase.from('requests').select('*').order('id');
+            if (error) { console.error(error); return []; }
+            return data || [];
+        }
+
+        async function addUser(user) {
+            const { data, error } = await supabase.from('users').insert([user]).select();
+            if (error) { console.error(error); return null; }
+            return data ? data[0] : null;
+        }
+
+        async function updateUser(id, updates) {
+            const { data, error } = await supabase.from('users').update(updates).eq('id', id).select();
+            if (error) { console.error(error); return null; }
+            return data ? data[0] : null;
+        }
+
+        async function addChannel(channel) {
+            const { data, error } = await supabase.from('channels').insert([channel]).select();
+            if (error) { console.error(error); return null; }
+            return data ? data[0] : null;
+        }
+
+        async function updateChannel(id, updates) {
+            const { data, error } = await supabase.from('channels').update(updates).eq('id', id).select();
+            if (error) { console.error(error); return null; }
+            return data ? data[0] : null;
+        }
+
+        async function addRequest(req) {
+            const { data, error } = await supabase.from('requests').insert([req]).select();
+            if (error) { console.error(error); return null; }
+            return data ? data[0] : null;
+        }
+
+        async function updateRequest(id, updates) {
+            const { data, error } = await supabase.from('requests').update(updates).eq('id', id).select();
+            if (error) { console.error(error); return null; }
+            return data ? data[0] : null;
+        }
+
+        async function getNextId(table) {
+            const { data, error } = await supabase.from(table).select('id').order('id', { ascending: false }).limit(1);
+            if (error || !data || data.length === 0) return 1;
+            return data[0].id + 1;
+        }
+
+        async function renderAdminData(section) {
+            if (section === 'users') await renderUsers();
+            else if (section === 'channels') await renderChannels();
+            else if (section === 'requests') await renderRequests();
+        }
+
+        async function renderUsers() {
+            const container = document.getElementById('usersList');
+            const users = await getUsers();
+            container.innerHTML = '';
+            if (users.length === 0) {
+                container.innerHTML = '<div class="empty-state">هیچ کاربری ثبت نشده است</div>';
+                return;
+            }
+            users.forEach(user => {
+                const div = document.createElement('div');
+                div.className = 'user-item';
+                div.innerHTML = `
+                    <div class="info">
+                        <div class="name"><span class="name-with-badge">${user.name}${user.verified ? renderBadge('blue') : ''}</span></div>
+                        <div class="detail">📱 ${user.phone} | ✉️ ${user.email}</div>
+                        <div class="detail">💰 ${(user.balance || 0).toLocaleString()} ریال</div>
+                        ${!user.isAdmin ? `
+                        <div class="balance-control">
+                            <input type="number" id="amount-${user.id}" placeholder="مبلغ" />
+                            <button class="btn-sm btn-add" onclick="addBalance(${user.id})">➕ افزودن</button>
+                            <button class="btn-sm btn-remove" onclick="removeBalance(${user.id})">➖ کم کردن</button>
+                            ${!user.verified ? `<button class="btn-sm btn-verify" onclick="verifyUser(${user.id})">✅ تیک آبی</button>` : ''}
+                        </div>
+                        ` : '<div class="detail" style="color:#10b981;">👑 مدیر سیستم</div>'}
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        async function renderChannels() {
+            const container = document.getElementById('channelsList');
+            const channels = await getChannels();
+            container.innerHTML = '';
+            if (channels.length === 0) {
+                container.innerHTML = '<div class="empty-state">هیچ چنلی ثبت نشده است</div>';
+                return;
+            }
+            channels.forEach(channel => {
+                const div = document.createElement('div');
+                div.className = 'channel-item';
+                div.innerHTML = `
+                    <div class="info">
+                        <div class="name"><span class="name-with-badge">${channel.name}${channel.verified ? renderBadge('gold') : ''}</span></div>
+                        <div class="detail">🔗 ${channel.link}</div>
+                        <div class="detail">📱 ${channel.platform} | 👤 ${channel.owner}</div>
+                    </div>
+                    <div class="actions">
+                        ${!channel.verified ? `<button class="btn-sm btn-gold" onclick="verifyChannel(${channel.id})">⭐ تیک زرد</button>` : ''}
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        async function renderRequests() {
+            const container = document.getElementById('requestsList');
+            const requests = await getRequests();
+            container.innerHTML = '';
+            if (requests.length === 0) {
+                container.innerHTML = '<div class="empty-state">هیچ درخواستی ثبت نشده است</div>';
+                return;
+            }
+            requests.forEach(req => {
+                const div = document.createElement('div');
+                div.className = 'request-item';
+                div.innerHTML = `
+                    <div class="info">
+                        <div class="name">${req.name}</div>
+                        <div class="detail">🔗 ${req.link}</div>
+                        <div class="detail">📱 ${req.platform} | 👤 ${req.owner}</div>
+                        <div class="detail">وضعیت: <span class="badge ${req.status === 'pending' ? 'badge-green' : req.status === 'accepted' ? 'badge-blue' : 'badge-red'}">${req.status === 'pending' ? 'در انتظار' : req.status === 'accepted' ? 'تأیید شده' : 'رد شده'}</span></div>
+                    </div>
+                    ${req.status === 'pending' ? `
+                    <div class="actions">
+                        <button class="btn-sm btn-accept" onclick="acceptRequest(${req.id})">✅ قبول</button>
+                        <button class="btn-sm btn-reject" onclick="rejectRequest(${req.id})">❌ رد</button>
+                    </div>
+                    ` : ''}
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        window.addBalance = async function(userId) {
+            const input = document.getElementById(`amount-${userId}`);
+            const amount = parseInt(input.value);
+            if (!amount || amount <= 0) { alert('لطفاً مبلغ معتبر وارد کنید.'); return; }
+            const users = await getUsers();
+            const user = users.find(u => u.id === userId);
+            if (user) {
+                const newBalance = (user.balance || 0) + amount;
+                await updateUser(userId, { balance: newBalance });
+                await renderUsers();
+                alert(`💰 ${amount.toLocaleString()} ریال به حساب ${user.name} اضافه شد.`);
+            }
+        };
+
+        window.removeBalance = async function(userId) {
+            const input = document.getElementById(`amount-${userId}`);
+            const amount = parseInt(input.value);
+            if (!amount || amount <= 0) { alert('لطفاً مبلغ معتبر وارد کنید.'); return; }
+            const users = await getUsers();
+            const user = users.find(u => u.id === userId);
+            if (user) {
+                if ((user.balance || 0) < amount) { alert('❌ موجودی کاربر کافی نیست!'); return; }
+                const newBalance = (user.balance || 0) - amount;
+                await updateUser(userId, { balance: newBalance });
+                await renderUsers();
+                alert(`💰 ${amount.toLocaleString()} ریال از حساب ${user.name} کم شد.`);
+            }
+        };
+
+        window.verifyUser = async function(userId) {
+            await updateUser(userId, { verified: true });
+            await renderUsers();
+            const users = await getUsers();
+            const user = users.find(u => u.id === userId);
+            alert(`✅ تیک آبی رسمی به ${user.name} داده شد.`);
+        };
+
+        window.verifyChannel = async function(channelId) {
+            await updateChannel(channelId, { verified: true });
+            await renderChannels();
+            const channels = await getChannels();
+            const channel = channels.find(c => c.id === channelId);
+            alert(`⭐ تیک زرد رسمی به ${channel.name} داده شد.`);
+        };
+
+        window.acceptRequest = async function(requestId) {
+            await updateRequest(requestId, { status: 'accepted' });
+            const requests = await getRequests();
+            const req = requests.find(r => r.id === requestId);
+            if (req) {
+                const nextId = await getNextId('channels');
+                await addChannel({
+                    id: nextId,
+                    name: req.name,
+                    link: req.link,
+                    platform: req.platform,
+                    owner: req.owner,
+                    verified: false
+                });
+                await renderRequests();
+                alert(`✅ درخواست ${req.name} تأیید شد.`);
+            }
+        };
+
+        window.rejectRequest = async function(requestId) {
+            await updateRequest(requestId, { status: 'rejected' });
+            await renderRequests();
+            const requests = await getRequests();
+            const req = requests.find(r => r.id === requestId);
+            alert(`❌ درخواست ${req.name} رد شد.`);
+        };
+
+        menuBtn.addEventListener('click', function() {
+            if (adminPanel.classList.contains('active')) { adminPanel.classList.remove('active');
+                showPage('verifyPage'); return; }
+            if (panelPage.classList.contains('active')) { panelPage.classList.remove('active');
+                showPage('verifyPage'); return; }
+            if (successPage.classList.contains('active')) { successPage.classList.remove('active');
+                successPage.style.display = 'none';
+                showPage('verifyPage'); return; }
+            if (verifyPage.classList.contains('active')) { showPage('adminPasswordPage');
+                adminError.classList.remove('show');
+                adminPasswordInput.value = '';
+                adminPasswordInput.focus(); return; }
+            if (adminPasswordPage.classList.contains('active')) { showPage('verifyPage');
+                adminError.classList.remove('show');
+                adminPasswordInput.value = ''; return; }
+            showPage('adminPasswordPage');
+            adminError.classList.remove('show');
+            adminPasswordInput.value = '';
+            adminPasswordInput.focus();
+        });
+
+        adminLoginBtn.addEventListener('click', function() {
+            if (adminPasswordInput.value.trim() === ADMIN_PASSWORD) {
+                adminError.classList.remove('show');
+                showPage('adminPanel');
+                renderUsers();
+                alert('✅ به پنل مدیریت خوش آمدید!');
+            } else {
+                adminError.classList.add('show');
+                adminPasswordInput.value = '';
+                adminPasswordInput.focus();
+            }
+        });
+
+        adminPasswordInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') adminLoginBtn.click();
+        });
+
+        backFromAdmin.addEventListener('click', function() {
+            showPage('verifyPage');
+            adminError.classList.remove('show');
+            adminPasswordInput.value = '';
+        });
+
+        document.getElementById('adminLogoutBtn').addEventListener('click', function() {
+            if (confirm('آیا مطمئن هستید؟')) {
+                adminPanel.classList.remove('active');
+                showPage('verifyPage');
+            }
+        });
+
+        sendCodeBtn.addEventListener('click', function() {
+            const phone = phoneInput.value.trim();
+            if (phone.length < 11 || !phone.startsWith('09')) { alert('❌ شماره موبایل معتبر وارد کنید.'); return; }
+            generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
+            codeBox.style.display = 'block';
+            simulatedCode.textContent = generatedCode;
+            alert(`📱 کد تأیید: ${generatedCode}`);
+            sendCodeBtn.disabled = true;
+            sendCodeBtn.textContent = '⏳ منتظر...';
+            errorMsg.classList.remove('show');
+            verifyCodeInput.value = '';
+            verifyCodeInput.focus();
+            startTimer();
+        });
+
+        function startTimer() {
+            let seconds = 120;
+            timerText.textContent = `⏳ ${seconds} ثانیه`;
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                seconds--;
+                if (seconds <= 0) {
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                    sendCodeBtn.disabled = false;
+                    sendCodeBtn.textContent = 'ارسال مجدد';
+                    timerText.textContent = '✅ می‌توانید مجدد ارسال کنید';
+                } else {
+                    timerText.textContent = `⏳ ${seconds} ثانیه`;
+                }
+            }, 1000);
+        }
+
+        verifyCodeInput.addEventListener('input', function() {
+            const code = this.value.trim();
+            if (code.length === 6) {
+                if (code === generatedCode) {
+                    verifyCodeInput.style.borderColor = '#16a34a';
+                    timerText.textContent = '✅ کد صحیح است';
+                } else {
+                    verifyCodeInput.style.borderColor = '#dc2626';
+                    timerText.textContent = '❌ کد اشتباه است';
+                }
+            } else {
+                verifyCodeInput.style.borderColor = '#e2e8f0';
+            }
+        });
+
+        document.getElementById('verifyForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const code = verifyCodeInput.value.trim();
+            const phone = phoneInput.value.trim();
+            const fullname = fullnameInput.value.trim();
+            const email = emailInput.value.trim();
+            const soroush = soroushInput.value.trim();
+
+            if (code !== generatedCode || code.length !== 6) {
+                errorMsg.classList.add('show');
+                verifyCodeInput.value = '';
+                verifyCodeInput.focus();
+                return;
+            }
+
+            const users = await getUsers();
+            let user = users.find(u => u.phone === phone);
+
+            if (!user) {
+                const nextId = await getNextId('users');
+                user = {
+                    id: nextId,
+                    name: fullname,
+                    phone: phone,
+                    email: email,
+                    soroush: soroush || 'وارد نشده',
+                    balance: 0,
+                    verified: false,
+                    isAdmin: false
+                };
+                const newUser = await addUser(user);
+                if (newUser) user = newUser;
+            }
+
+            currentUser = user;
+            verifyPage.classList.remove('active');
+            successPage.classList.add('active');
+            successPage.style.display = 'flex';
+            userNameDisplay.textContent = `👋 ${fullname} خوش آمدید!`;
+            createConfetti();
+            if (timerInterval) clearInterval(timerInterval);
+            errorMsg.classList.remove('show');
+
+            setTimeout(() => {
+                successPage.classList.remove('active');
+                successPage.style.display = 'none';
+                panelPage.classList.add('active');
+                document.getElementById('confettiContainer').innerHTML = '';
+                document.getElementById('userFullname').textContent = fullname;
+                document.getElementById('userBalance').textContent = (user.balance || 0).toLocaleString() + ' ریال';
+                document.getElementById('userChannel').textContent = soroush || 'ثبت نشده';
+                document.getElementById('accUsername').textContent = fullname;
+                document.getElementById('accPhone').textContent = phone;
+                document.getElementById('accEmail').textContent = email;
+                document.getElementById('accSoroush').textContent = soroush || 'وارد نشده';
+            }, 1500);
+        });
+
+        document.getElementById('goToChannelBtn').addEventListener('click', function() {
+            document.querySelectorAll('.top-nav a').forEach(l => l.classList.remove('active'));
+            document.querySelector('.top-nav a[data-section="channel"]').classList.add('active');
+            document.querySelectorAll('#panelPage .panel-section').forEach(s => s.classList.remove('active'));
+            document.getElementById('section-channel').classList.add('active');
+        });
+
+        document.getElementById('channelRequestBtn').addEventListener('click', async function() {
+            const name = document.getElementById('channelName').value.trim();
+            const link = document.getElementById('channelLink').value.trim();
+            const platform = document.getElementById('channelPlatform').value;
+            const owner = currentUser ? currentUser.name : 'کاربر';
+
+            if (!name || !link) { alert('❌ نام و لینک چنل را وارد کنید.'); return; }
+
+            const nextId = await getNextId('requests');
+            await addRequest({
+                id: nextId,
+                name: name,
+                link: link,
+                platform: platform,
+                owner: owner,
+                status: 'pending'
+            });
+
+            alert(`✅ درخواست چنل ${name} ارسال شد.`);
+            document.getElementById('channelName').value = '';
+            document.getElementById('channelLink').value = '';
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            if (confirm('آیا مطمئن هستید؟')) {
+                currentUser = null;
+                panelPage.classList.remove('active');
+                showPage('verifyPage');
+                verifyCodeInput.value = '';
+                phoneInput.value = '';
+                fullnameInput.value = '';
+                emailInput.value = '';
+                soroushInput.value = '';
+                generatedCode = '';
+                errorMsg.classList.remove('show');
+                timerText.textContent = '';
+                sendCodeBtn.disabled = false;
+                sendCodeBtn.textContent = 'ارسال کد';
+                codeBox.style.display = 'none';
+                simulatedCode.textContent = '------';
+                verifyCodeInput.style.borderColor = '#e2e8f0';
+                document.getElementById('confettiContainer').innerHTML = '';
+                alert('✅ با موفقیت خارج شدید.');
+            }
+        });
+
+        async function init() {
+            try {
+                statusElement.textContent = '✅ متصل به سرور (Supabase)';
+                statusElement.className = 'online-status';
+                showPage('verifyPage');
+            } catch (error) {
+                statusElement.textContent = '❌ خطا در اتصال به سرور';
+                statusElement.className = 'online-status offline';
+                console.error(error);
+            }
+        }
+        init();
+    </script>
+
+</body>
+  </html>
